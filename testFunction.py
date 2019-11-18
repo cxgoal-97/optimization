@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from utils.norm import vector_2norm
 
 
 class BasicFunction:
@@ -287,3 +288,83 @@ class Rosenbrock(BasicFunction):
         else:
             pass
         return res
+
+
+class PenaltyI(BasicFunction):
+    def __init__(self, m, n):
+        if m != n+1:
+            raise ValueError("m must equal to n+1")
+        super().__init__(m, n)
+        self.eta = 1e-5
+
+    def _r_i(self, x, i):
+        if i != self.n:
+            return np.sqrt(self.eta)*(x[i]-1)
+        else:
+            return self.n*vector_2norm(x)-0.25
+
+    def _dr_i(self, x, i):
+        if i != self.n:
+            return self.eta*np.ones(x.shape)
+        else:
+            return 2*self.n*x
+
+    def _ddr_i(self, x, i):
+        if i != self.n:
+            return np.zeros((x.shape[0], x.shape[0]))
+        else:
+            return 2*self.n*np.eye(x.shape[0])
+
+
+class Trigonometric(BasicFunction):
+    def __init__(self, m, n):
+        if m != n:
+            raise ValueError("m must equal to n")
+        super().__init__(m, n)
+
+    def _r_i(self, x, i):
+        return self.n-np.sum(np.cos(x))+(1+i)*(1-np.cos(x[i][0]))-np.sin(x[i][0])
+
+    def _dr_i(self, x, i):
+        tmp = np.zeros(x.shape)
+        for j in range(x.shape[0]):
+            if j != i:
+                tmp[j][0] = np.sin(x[j][0])
+            else:
+                tmp[j][0] = (i+2)*np.sin(x[j][0])-np.cos(x[j][0])
+        return tmp
+
+    def _ddr_i(self, x, i):
+        tmp = np.diag(np.cos(x).flatten())
+        tmp[i][i] = tmp[i][i]+(i*np.sin(x[i][0])-np.cos(x[i][0]))
+        return tmp
+
+
+class ExtendedRosenbrock(BasicFunction):
+    def __init__(self, m, n):
+        if n % 2 != 0 or m != n:
+            raise ValueError("m must equal to n and n must be odd")
+        super().__init__(m, n)
+
+    def _r_i(self, x, i):
+        if i % 2 == 0:
+            return 10*(x[i+1][0]-x[i][0]**2)
+        else:
+            return 1-x[i-1][0]
+
+    def _dr_i(self, x, i):
+        tmp = np.zeros(x.shape)
+        if i % 2 == 0:
+            tmp[i][0] = -20*x[i][0]
+            tmp[i+1][0] = 10
+        else:
+            tmp[i-1][0] = -1
+        return tmp
+
+    def _ddr_i(self, x, i):
+        tmp = np.zeros((x.shape[0], x.shape[0]))
+        if i % 2 == 0:
+            tmp[i][i] = -20
+        return tmp
+
+
