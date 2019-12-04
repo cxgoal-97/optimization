@@ -66,11 +66,11 @@ class NonmonotoneGLL(LinearSearch):
         alphak = self.alpha
         for t in range(self.max_iter):
             self._global_iter_increment()
-            alphak = alphak * self.sigma
             try:
                 if f(x + alphak * d) <= np.max(self.old_value[k - mk:]) + alphak * residual:
                     return alphak
             except:
                 print("x is {}, alpha is {}, d is{}".format(x, alphak, d))
+            alphak = alphak * self.sigma
         return alphak
         raise ValueError("can not find suitable alphak in GLL")

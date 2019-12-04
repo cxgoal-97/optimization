@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from utils.norm import vector_2norm
+import time
 
 
 class BasicFunction:
@@ -19,10 +20,16 @@ class BasicFunction:
         return np.sum([self._f_i(x, i) for i in range(self.m)])
 
     def g(self, x):
-        return np.sum([self._df_i(x, i) for i in range(self.m)], axis=0)
+        gx = np.zeros(x.shape, np.float64)
+        for i in range(self.m):
+            gx = gx + self._df_i(x, i)
+        return gx
 
     def gg(self, x):
-        return np.sum([self._ddf_i(x, i) for i in range(self.m)], axis=0)
+        gxx = np.zeros((x.shape[0], x.shape[0]), np.float64)
+        for i in range(self.m):
+            gxx = gxx + self._ddf_i(x, i)
+        return gxx
 
     def _r_i(self, x, i):
         pass
@@ -179,6 +186,56 @@ class ExtendedPowellSingular(BasicFunction):
             pass
         return res
 
+    def g(self, x):
+        gx = np.zeros(x.shape, dtype='float64')
+        for i in range(int(self.n / 4)):
+            gx[4 * i] = 2 * x[4 * i][0] + 20 * x[4 * i + 1][0] + 40 * (x[4 * i][0] - x[4 * i + 3][0]) ** 3
+            gx[4 * i + 1] = 20 * x[4 * i][0] + 200 * x[4 * i + 1][0] + 4 * (x[4 * i + 1][0] - 2 * x[4 * i + 2][0]) ** 3
+            gx[4 * i + 2] = 10 * (x[4 * i + 2][0] - x[4 * i + 3][0]) - 8 * (x[4 * i + 1][0] - 2 * x[4 * i + 2][0]) ** 3
+            gx[4 * i + 3] = -10 * (x[4 * i + 2][0] - x[4 * i + 3][0]) - 40 * (x[4 * i][0] - x[4 * i + 3][0]) ** 3
+        return gx
+
+    def gg(self, x):
+        ggx = np.zeros([self.n, self.n], dtype= 'float64')
+        for i in range(self.n):
+            for j in range(self.n):
+                if i % 4 == 0:
+                    if j == i:
+                        ggx[i, j] = 2 + 120 * (x[i][0] - x[i + 3][0]) ** 2
+                    elif j == i + 1:
+                        ggx[i, j] = 20
+                    elif j == i + 3:
+                        ggx[i, j] = -120 * (x[i][0] - x[j][0]) ** 2
+                    else:
+                        ggx[i, j] = 0
+                elif i % 4 == 1:
+                    if j == i - 1:
+                        ggx[i, j] = 20
+                    elif j == i:
+                        ggx[i, j] = 200 + 12 * (x[i][0] - 2 * x[i + 1][0]) ** 2
+                    elif j == i + 1:
+                        ggx[i, j] = -24 * (x[i][0] - 2 * x[j][0]) ** 2
+                    else:
+                        ggx[i, j] = 0
+                elif i % 4 == 2:
+                    if j == i - 1:
+                        ggx[i, j] = -24 * (x[j][0] - 2 * x[i][0]) ** 2
+                    elif j == i:
+                        ggx[i, j] = 10 + 48 * (x[i - 1][0] - 2 * x[i][0]) ** 2
+                    elif j == i + 1:
+                        ggx[i, j] = -10
+                    else:
+                        ggx[i, j] = 0
+                else:
+                    if j == i - 3:
+                        ggx[i, j] = -120 * (x[j][0] - x[i][0]) ** 2
+                    elif j == i - 1:
+                        ggx[i, j] = -10
+                    elif j == i :
+                        ggx[i, j] = 120 * (x[i - 3][0] - x[i][0]) ** 2 + 10
+                    else:
+                        ggx[i, j] = 0
+        return ggx
 
 class PowellBadlyScaled(BasicFunction):
     """
@@ -299,21 +356,53 @@ class PenaltyI(BasicFunction):
 
     def _r_i(self, x, i):
         if i != self.n:
-            return np.sqrt(self.eta)*(x[i]-1)
+            return np.sqrt(self.eta)*(x[i][0]-1)
         else:
-            return self.n*vector_2norm(x)-0.25
+            return vector_2norm(x)**2-0.25
 
     def _dr_i(self, x, i):
         if i != self.n:
             return self.eta*np.ones(x.shape)
         else:
-            return 2*self.n*x
+            return 2*x
 
     def _ddr_i(self, x, i):
         if i != self.n:
             return np.zeros((x.shape[0], x.shape[0]))
         else:
-            return 2*self.n*np.eye(x.shape[0])
+            return 2*np.eye(x.shape[0])
+
+    def g1(self, x):
+        gx = np.zeros(x.shape, dtype='float64')
+        h = np.sum(x**2)-0.25
+        for i in range(self.n):
+            gx[i] = 2 * self.eta * (x[i] - 1) + 2 * (2 * x[i]) * h
+        return gx
+
+    def g(self, x):
+        # gf = np.zeros(x.shape, dtype= 'float64')
+        x = x.flatten()
+        gx = 2 * self.eta * (x - 1) + 4 * (x.T.dot(x) - 0.25) * x
+        return gx.reshape(-1, 1)
+
+    def gg1(self, x):
+        # Gf = np.zeros([self.n, self.n], dtype= 'float64')
+        h = x.T.dot(x)
+        x = x.flatten()
+        ggx = 2 * self.eta + 4 * (x.T.dot(x) - 0.25) + 8 * x.dot(x.T) + np.diag(-2 * self.eta - 4 * (h-0.25))
+        return ggx
+
+
+    def gg(self, x):
+        gxx = np.zeros([self.n, self.n], dtype='float64')
+        h = np.sum(x**2)-0.25
+        for i in range(self.n):
+            for j in range(self.n):
+                if j == i:
+                    gxx[i, j] = 2 * self.eta + 4 * h + 8 * (x[i][0] ** 2)
+                else:
+                    gxx[i, j] = 8 * x[i][0] * x[j][0]
+        return gxx
 
 
 class Trigonometric(BasicFunction):
@@ -321,6 +410,8 @@ class Trigonometric(BasicFunction):
         if m != n:
             raise ValueError("m must equal to n")
         super().__init__(m, n)
+        self.o = np.array([(i + 1) for i in range(n)])
+        self.ii = np.arange(1, n + 1)
 
     def _r_i(self, x, i):
         return self.n-np.sum(np.cos(x))+(1+i)*(1-np.cos(x[i][0]))-np.sin(x[i][0])
@@ -339,6 +430,69 @@ class Trigonometric(BasicFunction):
         tmp[i][i] = tmp[i][i]+(i*np.sin(x[i][0])-np.cos(x[i][0]))
         return tmp
 
+    def g(self, x):
+        x = x.flatten()
+        rhs = self.ii * (1 - np.cos(x)) + self.n - np.sin(x) - sum(np.cos(x))
+        lhs = np.tile(2 * np.sin(x), (self.n, 1)).T
+        lhs = lhs + np.diag(2 * self.ii * np.sin(x) - 2 * np.cos(x))
+        return lhs.dot(rhs).reshape(-1, 1)
+
+    def gg(self, x):
+        x = x.flatten()
+        lhs1 = np.tile(2 * np.sin(x), (self.n, 1)).T
+        lhs1 = lhs1 + np.diag(2 * self.ii * np.sin(x) - 2 * np.cos(x))
+        rhs1 = np.tile(np.sin(x), (self.n, 1)) + np.diag(self.ii * np.sin(x) - np.cos(x))
+
+        lhs2 = np.tile(2 * np.cos(x), (self.n, 1)).T
+        lhs2 = lhs2 + np.diag(2 * self.ii * np.cos(x) + 2 * np.sin(x))
+        rhs2 = self.ii * (1 - np.cos(x)) + self.n - np.sin(x) - sum(np.cos(x))
+        res = lhs2.dot(rhs2)
+        return lhs1.dot(rhs1) + np.diag(res)
+
+    def g1(self, x):
+        gx = np.zeros(x.shape, dtype='float64')
+        sum = 0
+        for j in range(self.n):
+            sum += np.cos(x[j])
+        for i in range(self.n):
+            for j in range(self.m):
+                if i == j:
+                    gr = (i + 2) * np.sin(x[i]) - np.cos(x[i])
+                else:
+                    gr = np.sin(x[i])
+                r = self.n - sum + (j + 1) * (1 - np.cos(x[j])) - np.sin(x[j])
+                gx[i] += 2 * r * gr
+        return gx
+    '''
+    def gg(self, x):
+        #print(time.time())
+        ggx = np.zeros([self.n, self.n], dtype='float64')
+        sum = np.sum(np.cos(x))
+        #for j in range(self.n):
+        #    sum += np.cos(x[j][0])
+
+        for i in range(self.n):
+            for j in range(self.m):
+                if j == i:
+                    sum1 = 0
+                    b = np.cos(x[i][0])
+                    for h in range(self.n):
+                        if h == i:
+                            r = 0
+                        else:
+                            r = self.n - sum + (h + 1) * (1 - np.cos(x[h][0])) - np.sin(x[h][0])
+                        sum1 += 2 * b * r
+                    a = np.sin(x[i])
+                    ggx[i, j] = sum1 + 2 * ((i + 2) * a - b) ** 2 + 2 * (self.n - sum + (i + 1) * (1 - b) - a) * (
+                                (i + 2) * b + a) + 2 * (self.n - 1) * a ** 2
+                else:
+                    a = np.sin(x[i][0])
+                    b = np.sin(x[j][0])
+                    ggx[i, j] = 2 * a * ((j + self.n) * b - np.cos(x[j][0])) + 2 * ((i + 2) * a - np.cos(x[i][0])) * b
+        #print(time.time())
+        return ggx
+        
+    '''
 
 class ExtendedRosenbrock(BasicFunction):
     def __init__(self, m, n):
@@ -367,4 +521,29 @@ class ExtendedRosenbrock(BasicFunction):
             tmp[i][i] = -20
         return tmp
 
+    def g(self, x):
+        gx = np.zeros(x.shape)#, dtype= 'float64')
+        for i in range(int(self.n / 2)):
+            gx[2 * i] = -400 * x[2 * i] * (x[2 * i + 1] - x[2 * i] ** 2) - 2 + 2 * x[2 * i]
+            gx[2 * i + 1] = 200 * (x[2 * i + 1] - x[2 * i] ** 2)
+        return gx
 
+    def gg(self, x):
+        ggx = np.zeros([self.n, self.n], dtype='float64')
+        for i in range(self.n):
+            for j in range(self.n):
+                if i % 2 == 0:
+                    if i == j:
+                        ggx[i, j] = -400 * x[i + 1][0] + 1200 * x[i][0] ** 2 + 2
+                    elif j == i + 1:
+                        ggx[i, j] = -400 * x[i][0]
+                    else:
+                        ggx[i, j] = 0
+                else:
+                    if i == j:
+                        ggx[i, j] = 200
+                    elif j == i - 1:
+                        ggx[i, j] = -400 * x[j][0]
+                    else:
+                        ggx[i, j] = 0
+        return ggx

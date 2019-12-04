@@ -41,7 +41,7 @@ class NewtonMethod(BasicOptimizer):
             self.g_val.append(g(x0))
             self.alpha.append(alpha)
             self._iter_increment()
-            #print("the minimum eigenvalue is {}".format(np.min(np.linalg.eigvals(gg(x1)))))
+            print("the minimum eigenvalue is {}".format(np.min(np.linalg.eigvals(gg(x1)))))
             if self.iter_num % 100 == 0:
                 print("iter_num:{}, f is {}, g is {}, x is {}".format(self.iter_num, f(x1), g(x1), x1))
             if self._maximum_loop() is True or self._convergence(f, x0, x1) is True:
@@ -49,14 +49,12 @@ class NewtonMethod(BasicOptimizer):
                 self.d_val.append(d)
                 self.g_val.append(g(x1))
                 self.alpha.append(alpha)
-                '''
                 print("d is \n"
                       "{}\n"
                       "alpha is:{}".format(d, alpha))
                 print("iter_num:{}\n"
                       "x is {}, f(x) is {},\n"
                       "delta is:{}".format(self.iter_num, x1, f(x1), np.abs(f(x0)-f(x1))))
-                '''
                 break
             x0 = x1
         return x1
@@ -123,15 +121,12 @@ class GillMurrayNewton(BasicOptimizer):
                 self.d_val.append(d)
                 self.g_val.append(g(x1))
                 self.alpha.append(alpha)
-                
-               	'''
                 print("iter_num:{}\n"
                       "f is \n{}\n"
                       "d is \n{}\n"
                       "x is \n{}\n"
                       "alpha is\n{}".format(self.iter_num, f(x1), d, x1, alpha))
                 break
-                '''
             x0 = x1
         return x1
 
@@ -205,13 +200,11 @@ class FletcherFreemanMethod(BasicOptimizer):
                 self.d_val.append(d)
                 self.g_val.append(g(x1))
                 self.alpha.append(alpha)
-                '''
                 print("iter_num:{}\n"
                       "f is \n{}\n"
                       "d is \n{}\n"
                       "x is \n{}\n"
                       "alpha is\n{}".format(self.iter_num, f(x1), d, x1, alpha))
-                '''
                 break
             x0 = x1
         return x1
@@ -304,6 +297,8 @@ class FletcherFreemanMethod(BasicOptimizer):
                 return -v[-1, :].reshape(-1, 1)*10
             else:
                 return v[-1, :].reshape(-1, 1)*10
+
+
             print(np.dot(gg(x0), v))
             print("iter_num:{}\n"
                   "d is \n{}\n".format(self.iter_num,  d))
