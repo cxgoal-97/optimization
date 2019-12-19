@@ -18,7 +18,7 @@ class TrustRegion(BasicOptimizer):
             gamma = (fx0-fx1)/(fx0-q_dk)
             if gamma <= 0.25:
                 self.delta = self.delta / 4
-            elif gamma >= 0.75 and vector_2norm(d) == self.delta:
+            elif gamma >= 0.75 and np.abs(vector_2norm(d)-self.delta) < 1e-2:
                 self.delta = self.delta * 3
             else:
                 pass
@@ -31,7 +31,6 @@ class TrustRegion(BasicOptimizer):
             if gamma > 0:
                 x0, fx0 = x1, fx1
                 gx0, ggx0 = g(x0), gg(x0)
-                self._iter_increment()
             else:
                 pass
             self._iter_increment()
@@ -50,14 +49,15 @@ class TrustRegion(BasicOptimizer):
         inv_ggx = np.linalg.inv(ggx)
         d = -np.dot(inv_ggx, gx)
         norm_d = vector_2norm(d)
+        print("fx1 is {}, item is {}, norm_d is {}".format(fx, self.iter_num, norm_d))
         if norm_d <= self.delta:
-            return d
+            return d, self._q_dk(fx, gx, ggx, d)
         # find ||d(v)|| = delta_k
-        # v0 = 0
-        v = 0.1
+        v = 0
         #
         i = 0
-        while np.abs(norm_d-self.delta) > 1e-3*self.delta and i < 100:
+        ori_norm_d = norm_d
+        while np.abs(norm_d-self.delta) > 1e-2*self.delta and norm_d/ori_norm_d > 1e-1:
             i = i+1
             inv_ggx = np.linalg.inv((ggx + v*np.eye(ggx.shape[0])))
             d = -np.dot(inv_ggx, gx)
@@ -66,7 +66,7 @@ class TrustRegion(BasicOptimizer):
             psi_v = norm_d - self.delta
             psi_d_v = np.dot(d.T, partial_d)
             v = v - (psi_v + self.delta)/self.delta * psi_v/psi_d_v
-        print(self._q_dk(fx, gx, ggx, d))
+        print(i)
         return d, self._q_dk(fx, gx, ggx, d)
 
     def _cauthy(self, fx, gx, ggx):
@@ -80,40 +80,67 @@ class TrustRegion(BasicOptimizer):
     def _subspace(self, fx, gx, ggx):
         min_eigval = np.min(np.linalg.eigvals(ggx))
         if min_eigval < -1e-5:
-            print("增加")
-            ggx = ggx + 1.5 * min_eigval * np.eye(ggx.shape[0])
+            modify_ggx = ggx-1.5*min_eigval*np.eye(ggx.shape[0])
+            inv_modify_ggx = np.linalg.inv(modify_ggx)
+            invmodifyggx_gx = np.dot(inv_modify_ggx, gx)
+            a = vector_2norm(gx) ** 2
+            b = np.dot(gx.T, invmodifyggx_gx)
+            c = vector_2norm(invmodifyggx_gx) ** 2
+            d = np.dot(gx.T, np.dot(ggx, gx))
+            e = np.dot(np.dot(ggx, gx).T, invmodifyggx_gx)
+            f = np.dot(np.dot(ggx, invmodifyggx_gx).T, invmodifyggx_gx)
+
+            p = a*c - b**2
+            q = e*b - a*f
+            m = 4*b*e - 2*a*f - 2*c*d
+            r = d*f - e**2
+            n = a*e - b*d
+
+            # 0=q_4 v^4 + q_3 v^3 + q_2 v^2 + q_1 v+ q_0
+            q4 = 16 * m ** 2 * self.delta ** 2
+            q3 = 8 * m * p * self.delta ** 2
+            q2 = (8*p*r + m**2)*self.delta**2 - 4*a*p**2
+            q1 = 2*m*r*self.delta**2 - 4*(a*p*q + b*n*p)
+            q0 = self.delta**2*r**2 - (a*q**2 + 2*b*n*q + c*n**2)
+
+            v = np.roots(np.array([q4, q3, q2, q1, q0]).flatten())
+            v = np.sort(v)
+            for i in v:
+                if np.imag(i) == 0:
+                    v = np.real(i)
+                    break
+            t = 4*p*v**2 + 2*m*v + n
+            d = 1/t*((2*v*p + q)*gx + n*invmodifyggx_gx)
+
         elif min_eigval > 1e-5:
-            #print("不变")
-            pass
+            a = vector_2norm(gx) ** 2
+            inv_ggx = np.linalg.inv(ggx)
+            b = np.dot(np.dot(inv_ggx, gx).T, gx)
+            c = vector_2norm(np.dot(inv_ggx, gx)) ** 2
+            d = np.dot(np.dot(ggx, gx).T, gx)
+
+            m = a * c - b * b
+            n = a * b - c * d
+            q = a * a - b * d
+
+            # 0=q_4 v^4 + q_3 v^3 + q_2 v^2 + q_1 v+ q_0
+            q4 = 16 * m * m * self.delta ** 2
+            q3 = 16 * m * n * self.delta ** 2
+            q2 = 4 * n * n * self.delta ** 2 - 8 * m * q * self.delta ** 2 - 4 * a * m ** 2
+            q1 = 4 * b * q * m - 4 * n * q * self.delta ** 2
+            q0 = (self.delta ** 2 - c) * q ** 2
+
+            v = np.roots(np.array([q4, q3, q2, q1, q0]).flatten())
+            v = np.sort(v)
+            for i in v:
+                if np.imag(i) == 0:
+                    v = np.real(i)
+                    break
+            t = 4 * m * v ** 2 + 2 * n * v - q
+            d = (2 * v * m * gx + q * np.dot(inv_ggx, gx)) / t
         else:
-            #print("Cauthy")
             return self._cauthy(fx, gx, ggx)
 
-        a = vector_2norm(gx)**2
-        inv_ggx = np.linalg.inv(ggx)
-        b = np.dot(np.dot(inv_ggx, gx).T, gx)
-        c = vector_2norm(np.dot(inv_ggx, gx))**2
-        d = np.dot(np.dot(ggx, gx).T, gx)
-
-        m = a*c-b*b
-        n = a*b-c*d
-        q = a*a-b*d
-
-        # 0=q_4 v^4 + q_3 v^3 + q_2 v^2 + q_1 v+ q_0
-        q4 = 16*m*m*self.delta**2
-        q3 = 16*m*n*self.delta**2
-        q2 = 4*n*n*self.delta**2-8*m*q*self.delta**2-4*a*m**2
-        q1 = 4*b*q*m-4*n*q*self.delta**2
-        q0 = (self.delta**2-c)*q**2
-
-        v = np.roots(np.array([q4, q3, q2, q1, q0]).flatten())
-        v = np.sort(v)
-        for i in v:
-            if np.imag(i) == 0:
-                v = np.real(i)
-                break
-        t = 4*m*v**2+2*n*v-q
-        d = (2*v*m*gx+q*np.dot(inv_ggx, gx))/t
         return d, self._q_dk(fx, gx, ggx, d)
 
     def _q_dk(self, fx, gx, ggx, dx):
