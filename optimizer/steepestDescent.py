@@ -6,7 +6,7 @@ class SteepestDescent(BasicOptimizer):
 
     """
 
-    def __init__(self,  step_optimizer=None, max_error=1e-6, max_iter=10000, **opt):
+    def __init__(self,  step_optimizer=None, max_error=1e-6, max_iter=100, **opt):
         """
 
         :param step_optimizer:

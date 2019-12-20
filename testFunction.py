@@ -1,7 +1,6 @@
 import numpy as np
 import math
 from utils.norm import vector_2norm
-import time
 
 
 class BasicFunction:
@@ -391,7 +390,6 @@ class PenaltyI(BasicFunction):
         x = x.flatten()
         ggx = 2 * self.eta + 4 * (x.T.dot(x) - 0.25) + 8 * x.dot(x.T) + np.diag(-2 * self.eta - 4 * (h-0.25))
         return ggx
-
 
     def gg(self, x):
         gxx = np.zeros([self.n, self.n], dtype='float64')

@@ -5,8 +5,8 @@ class LinearSearch:
     def __init__(self,  method, max_iter=100, **opt):
         """
 
-        :param method: the method of getting suitable step length
-        :param max_iter: the maximum iter num we can tolerate
+        :param method: a string of a method which can get suitable step length
+        :param max_iter: a int num represents the maximum iter num we can tolerate
         :param opt: the suitable params
         """
         self.method = method

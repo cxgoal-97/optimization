@@ -1,5 +1,4 @@
 import numpy as np
-import math
 from linearSearch.linearSearch import LinearSearch
 
 

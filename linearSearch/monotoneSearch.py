@@ -4,18 +4,17 @@ import numpy as np
 
 class AccurateLinearSearch(LinearSearch):
     """
-    this class object is a linear search machine
-    we need
+    This class is used to find a suitable search area.
 
     """
     def __init__(self, method="GoldenRate", find_area_method="GoAndBack", max_iter=100, **opt):
         """
         :Note
-        This is an init function, we need to
-        the method mainly contain
+        This is an init our class object by selecting search method and area-search method.
 
         :param method: a string of accurate linear search method, including "GoldenRate",
         :param find_area_method: a string of area search method, including "GoAndBack"
+        :param max_iter: a int num represents the maximum iter num we can tolerate
         :param opt: some other including parameter
         """
         if method not in ["GoldenRate"]:
@@ -28,10 +27,11 @@ class AccurateLinearSearch(LinearSearch):
         :Note
         get step length
 
-        :param f: original function
+        :param f: object function
         :param g: one-order function
-        :param x: initial point. np.ndarray of shape(N, 1)
-        :param d: decent direction. np.ndarray of shape(N, 1)
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
+
         :return alpha: step length. float value
         """
         a, b = self._get_search_area(f, x, d)
@@ -42,13 +42,15 @@ class AccurateLinearSearch(LinearSearch):
         :Note
         In accurate linear search method, we need get search area.
         "GoAndBack"
-        :param f:
-        :param x:
-        :param d:
-        :return (a,b): search area. tuple of float 2
+
+        :param f: object function
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
+
+        :return (a,b): search area. tuple of float
         """
         if self.find_area_method is "GoAndBack":
-            return super()._go_and_back(f, x, d)
+            return self._go_and_back(f, x, d)
         else:
             raise NameError("{} is not a legal way to find search area.".format(self.find_area_method))
 
@@ -57,12 +59,14 @@ class AccurateLinearSearch(LinearSearch):
         :Note
         After search area be determined.
         "GoldenRate"
-        :param f:
-        :param x:
-        :param d:
+
+        :param f: object function
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
         :param a: left bound
         :param b: right bound
-        :return alpha:
+
+        :return alpha: the
         """
         if self.method is "GoldenRate":
             return self._golden_rate(f, x, d, a, b)
@@ -70,6 +74,17 @@ class AccurateLinearSearch(LinearSearch):
             raise NameError("{} is a illegal method".format(self.method))
 
     def _golden_rate(self, f, x, d, a, b, threshold=1e-8):
+        """
+
+        :param f:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
+        :param a:
+        :param b:
+        :param threshold:
+
+        :return:
+        """
         if "GoldenRateThreshold" in self.opt:
             threshold = self.opt["GoldenRateThreshold"]
         while abs(b-a) > threshold:
@@ -86,18 +101,14 @@ class AccurateLinearSearch(LinearSearch):
     def _go_and_back(self, f, x, d, alpha=0, eta=1e-3, t=2):
         """
         :Note
-        goAndBack is used to find a high-low-high area of function range
-        f(x+alpha*d)
-        1: init alpha, eta, t, i=0
-        2:
-
-        :param f: the object function
-        :param x: the start point, we don't change in this method, np.ndarray of shape (N, 1)
+        :param f: object function
+        :param x: the start point, np.ndarray of shape (N, 1)
         :param d: the decent direction, np.ndarray of shape(N, 1)
         :param alpha: the basic alpha, float with default value 0
         :param eta: the alpha_add each interaction, float with default value 1e-3
         :param t: the scale times, float with default value 2
-        :return: (a, b) the suitable search area
+
+        :return: (a, b) the suitable search area, tuple of float
         """
         if 't' in self.opt:
             t = self.opt['GoAndBack_t']
@@ -162,6 +173,15 @@ class InaccurateLinearSearch(LinearSearch):
         return alpha
 
     def _get_step_length(self, f, g, x, d, alpha):
+        """
+
+        :param f:
+        :param g:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
+        :param alpha:
+        :return:
+        """
         if self.method == "Interp22":
             return self._interp22(f, g, x, d, alpha)
         elif self.method == "Interp33":
@@ -178,8 +198,8 @@ class InaccurateLinearSearch(LinearSearch):
         """
         :param f:
         :param g:
-        :param x:
-        :param d:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
         :param alpha:
         :return:
         """
@@ -191,8 +211,8 @@ class InaccurateLinearSearch(LinearSearch):
 
         :param f:
         :param g:
-        :param x:
-        :param d:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
         :param alpha:
         :param alpha1:
         :return:
@@ -217,8 +237,8 @@ class InaccurateLinearSearch(LinearSearch):
         """
         :param f:
         :param g:
-        :param x:
-        :param d:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
         :param alpha:
         :return:
         """
@@ -228,7 +248,6 @@ class InaccurateLinearSearch(LinearSearch):
         #      "f(x) is {}\n"
         #      "np.dot()*alpha is{}".format(f(x+alpha*d), f(x), alpha*np.dot(g(x).T, d)))
         # print("q is :{}".format(q))
-        print("p is {}, q is {}".format(p, q))
         if q == 0:
             raise ValueError("the num was divided by zero in interp22 method ")
         # print(p/q)
@@ -239,8 +258,8 @@ class InaccurateLinearSearch(LinearSearch):
 
         :param f:
         :param g:
-        :param x:
-        :param d:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
         :param alpha:
         :return:
         """
@@ -264,8 +283,8 @@ class InaccurateLinearSearch(LinearSearch):
         |g(x + alpha * d)^T \cdot d| >= -sigma * g(x)^T \cdot d
         :param f:
         :param g:
-        :param x:
-        :param d:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
         :param alpha:
         :return (g1, g2):
         """
@@ -282,8 +301,8 @@ class InaccurateLinearSearch(LinearSearch):
         g(x + alpha * d)^T \cdot d > sigma * g(x)^T \cdot d
         :param f:
         :param g:
-        :param x:
-        :param d:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
         :param alpha:
         :return (g1, g2):
         """
@@ -307,8 +326,8 @@ class InaccurateLinearSearch(LinearSearch):
         f(x+alpha*d) >= f(x) + (1-rho)*alpha*np.dot(g.T, d)
         :param f:
         :param g:
-        :param x:
-        :param d:
+        :param x: the start point, np.ndarray of shape (N, 1)
+        :param d: the decent direction, np.ndarray of shape(N, 1)
         :param alpha:
         :return (g1, g2):
         """
@@ -318,9 +337,6 @@ class InaccurateLinearSearch(LinearSearch):
         if rho >= 0.5 or rho <= 0:
             raise ValueError("the rho is {}, but it needs to be in (0, 1/2)".format(rho))
 
-        #       print("f(x+alpha*d){}\n"
-        #      "f(x){}\n"
-        #      "np.dot{}".format(f(x+alpha*d), f(x), rho*alpha*np.dot(g(x).T, d)))
         g1 = (f(x + alpha * d) <= f(x) + rho * np.dot(g(x).T, d) * alpha)[0][0]
         g2 = (f(x + alpha * d) >= f(x) + (1 - rho) * np.dot(g(x).T, d) * alpha)[0][0]
         return g1, g2

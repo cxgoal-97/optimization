@@ -36,11 +36,9 @@ class InaccurateNewton(BasicOptimizer):
         gx1 = gx0
         ggx1 = ggx0
         while True:
-            print("{} 开始".format(self.iter_num))
             fx0 = fx1
             gx0 = gx1
             ggx0 = ggx1
-            print("{} 开始球d ".format(self.iter_num))
             d = self._get_descent_direction(ggx0, gx0)
             '''
             if vector_2norm((np.dot(ggx0, d)+gx0).flatten()) > self.eta * vector_2norm(gx0.flatten()):
@@ -48,7 +46,6 @@ class InaccurateNewton(BasicOptimizer):
                 raise ValueError("")
             '''
             # get suitable step length
-            print("{} 开始更新 d".format(self.iter_num))
             eta = self.eta
             for i in range(2):
                 x1 = x0 + d
@@ -60,9 +57,9 @@ class InaccurateNewton(BasicOptimizer):
                 print(i)
                 eta = 1-theta*(1-eta)
 
-            print("{} 开始更新参数 {}".format(self.iter_num, self.eta))
+            #print("{} 开始更新参数 {}".format(self.iter_num, self.eta))
             self._update_eta(gx0, gx1, ggx0, d)
-            print("iter_num is{}, f(x) is{} g(x) is {} x is {}".format(self.iter_num, fx1, vector_2norm(gx1), vector_2norm(x1)))
+            #print("iter_num is{}, f(x) is{} g(x) is {} x is {}".format(self.iter_num, fx1, vector_2norm(gx1), vector_2norm(x1)))
             if self._convergence(gx1, x1) is True or self._maximum_loop() is True:
                 print("iter_num is{}, f(x) is{}".format(self.iter_num, fx1))
                 break
