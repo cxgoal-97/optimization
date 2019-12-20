@@ -1,5 +1,3 @@
-
-
 class LinearSearch:
     """
 
@@ -7,9 +5,9 @@ class LinearSearch:
     def __init__(self,  method, max_iter=100, **opt):
         """
 
-        :param method:
-        :param max_iter:
-        :param opt:
+        :param method: the method of getting suitable step length
+        :param max_iter: the maximum iter num we can tolerate
+        :param opt: the suitable params
         """
         self.method = method
         self.max_iter = max_iter
@@ -17,7 +15,7 @@ class LinearSearch:
         self.opt = opt
 
     def get_step_length(self, f, g, x, d):
-        raise NameError("This class shouldn't be used")
+        raise NameError("virtual class shouldn't be used")
 
     def _check_condition(self, f, g, x, d, alpha):
         pass
