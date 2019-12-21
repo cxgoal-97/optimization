@@ -71,3 +71,6 @@ class BasicOptimizer:
 
     def _get_descent_direction(self, f, g, x0):
         pass
+
+    def _clear_item(self):
+        self.iter_num = 0

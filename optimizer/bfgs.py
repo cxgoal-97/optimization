@@ -13,7 +13,6 @@ class BFGS(BasicOptimizer):
         return True if vector_2norm(gx.flatten()) < self.max_error * np.max([1, vector_2norm(x.flatten())]) else False
 
     def compute(self, f, g, x0):
-        self.iter_num = 0
         fx0, gx0 = f(x0), g(x0)
 
         while True:

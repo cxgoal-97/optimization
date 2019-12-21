@@ -1,6 +1,9 @@
 import numpy as np
 from optimizer.basicOptimizer import BasicOptimizer
 from utils.norm import vector_2norm
+from scipy import linalg
+
+from testFunction import ExtendedPowellSingular, Rosenbrock, BiggsEXP6, PowellBadlyScaled
 
 
 class TrustRegion(BasicOptimizer):
@@ -28,17 +31,17 @@ class TrustRegion(BasicOptimizer):
         """
         fx0, gx0, ggx0 = f(x0), g(x0), gg(x0)
         while True:
+            if self.iter_num > 178:
+                print("....")
             d = self._get_descent_direction(fx0, gx0, ggx0)
-            print(d)
             q_dk = self._q_dk(fx0, gx0, ggx0, d)
             x1 = x0 + d
             fx1 = f(x1)
-            if fx0 == q_dk:
-                return x1
+            print("k is:",self.iter_num , "d is ", d)
             gamma = (fx0 - fx1) / (fx0 - q_dk)
             if gamma <= 0.25:
                 self.delta = self.delta / 4
-            elif gamma >= 0.75 and np.abs(vector_2norm(d) - self.delta) < 1e-2:
+            elif gamma >= 0.75 and np.abs(linalg.norm(d) - self.delta) < 1e-8:
                 self.delta = self.delta * 3
             else:
                 pass
@@ -47,6 +50,7 @@ class TrustRegion(BasicOptimizer):
                 return x1
 
             if gamma > 0:
+
                 x0, fx0 = x1, fx1
                 gx0, ggx0 = g(x0), gg(x0)
             else:
@@ -82,25 +86,28 @@ class TrustRegion(BasicOptimizer):
 
         :return: d: the descent direction, np.ndarray of shape (N, 1)
         """
+
         inv_ggx = np.linalg.inv(ggx)
         d = -np.dot(inv_ggx, gx)
-        norm_d = vector_2norm(d)
+        norm_d = linalg.norm(d)
         if norm_d <= self.delta:
+            print(fx)
             return d
         # find ||d(v)|| = delta_k
         v = 0
         #
         i = 0
         ori_norm_d = norm_d
-        while np.abs(norm_d - self.delta) > 1e-2 * self.delta and norm_d / ori_norm_d > 5e-2 and i < 50:
+        while np.abs(norm_d - self.delta) > 1e-2 * self.delta:# and norm_d / ori_norm_d > 5e-2 and i < 50:
             i = i + 1
-            inv_ggx = np.linalg.inv((ggx + v * np.eye(ggx.shape[0])))
+            inv_ggx = linalg.inv(ggx + v*np.eye(ggx.shape[0]))
             d = -np.dot(inv_ggx, gx)
-            norm_d = vector_2norm(d)
+            norm_d = linalg.norm(d)
             partial_d = -1 * np.dot(inv_ggx, d)
-            psi_v = norm_d - self.delta
-            psi_d_v = np.dot(d.T, partial_d)
-            v = v - (psi_v + self.delta) / self.delta * psi_v / psi_d_v
+            psi_v = (norm_d - self.delta)
+            psi_d_v = np.dot(d.T, partial_d)/norm_d
+            v = v - (psi_v + self.delta)/self.delta * psi_v / psi_d_v
+        print("i:{}, fx is {}".format(i, fx))
         return d
 
     def _cauthy(self, fx, gx, ggx):
@@ -207,3 +214,12 @@ class TrustRegion(BasicOptimizer):
         :return: value of quadratic function q, float
         """
         return fx + np.dot(gx.T, dx) + 0.5 * np.dot(dx.T, np.dot(ggx, dx))
+
+
+method = TrustRegion("hebden", delta=0.1, max_iter=3000)
+f = BiggsEXP6(8)
+fx0 = np.array([1, 2, 1, 1, 1, 1]).reshape(6, 1)
+
+x = method.compute(f.f, f.g, f.gg, fx0)
+print(f.f(x))
+
