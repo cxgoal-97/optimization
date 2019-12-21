@@ -88,8 +88,8 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/optimizer/trustRegionMethod.py</url>
-          <line>34</line>
-          <option name="timeStamp" value="11" />
+          <line>86</line>
+          <option name="timeStamp" value="13" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
