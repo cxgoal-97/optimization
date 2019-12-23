@@ -33,15 +33,18 @@ class NewtonMethod(BasicOptimizer):
             d = self._get_descent_direction(f, g, gg, x0)
             alpha = 1 if self.step_optimizer is None else self.step_optimizer.get_step_length(f, g, x0, d)
             x1 = x0 + alpha * d
+            self._iter_increment()
+            '''
             self.f_val.append(f(x0))
             self.d_val.append(d)
             self.g_val.append(g(x0))
             self.alpha.append(alpha)
-            self._iter_increment()
             print("the minimum eigenvalue is {}".format(np.min(np.linalg.eigvals(gg(x1)))))
             if self.iter_num % 100 == 0:
                 print("iter_num:{}, f is {}, g is {}, x is {}".format(self.iter_num, f(x1), g(x1), x1))
+            '''
             if self._maximum_loop() is True or self._convergence(f, x0, x1) is True:
+                '''
                 self.f_val.append(f(x1))
                 self.d_val.append(d)
                 self.g_val.append(g(x1))
@@ -52,6 +55,7 @@ class NewtonMethod(BasicOptimizer):
                 print("iter_num:{}\n"
                       "x is {}, f(x) is {},\n"
                       "delta is:{}".format(self.iter_num, x1, f(x1), np.abs(f(x0)-f(x1))))
+                '''
                 break
             x0 = x1
         return x1
@@ -60,7 +64,7 @@ class NewtonMethod(BasicOptimizer):
         try:
             return -1*np.dot(np.linalg.inv(gg(x0)), g(x0))
         except BaseException:
-            print("x0 is {}, {}".format(x0, gg(x0)))
+            #print("x0 is {}, {}".format(x0, gg(x0)))
             raise ValueError("Hessian Matrix can not be singular.")
 
 
@@ -98,10 +102,13 @@ class GillMurrayNewton(BasicOptimizer):
             d = self._get_descent_direction(f, g, gg, x0, epsilon)
             alpha = 1 if self.step_optimizer is None else self.step_optimizer.get_step_length(f, g, x0, d)
             x1 = x0 + alpha*d
+            '''
+            #
             self.f_val.append(f(x0))
             self.d_val.append(d)
             self.g_val.append(g(x0))
             self.alpha.append(alpha)
+            '''
             self._iter_increment()
             if self.iter_num % 100 == 0:
                 pass
@@ -114,6 +121,7 @@ class GillMurrayNewton(BasicOptimizer):
                       "f(x0)-f(x1) is {}".format(self.iter_num, f(x1), d, x1, alpha, f(x0) - f(x1)))
                 '''
             if self._maximum_loop() is True or self._convergence(f, x0, x1) is True:
+                '''
                 self.f_val.append(f(x1))
                 self.d_val.append(d)
                 self.g_val.append(g(x1))
@@ -123,13 +131,13 @@ class GillMurrayNewton(BasicOptimizer):
                       "d is \n{}\n"
                       "x is \n{}\n"
                       "alpha is\n{}".format(self.iter_num, f(x1), d, x1, alpha))
+                '''
                 break
             x0 = x1
         return x1
 
     def _get_descent_direction(self, f, g, gg, x0, epsilon):
         L, D = modify_cholesky_fraction(gg(x0))
-        # print("LDL^T is {}")
         """
         print("L is {}\n"
               "D is {}".format(L, D))
@@ -143,7 +151,7 @@ class GillMurrayNewton(BasicOptimizer):
         else:
             psi = np.diag(2*gg(x0)-np.dot(np.dot(L, D), L.T))
             index = np.argmin(psi)
-            print("psi min is {}".format(np.min(psi)))
+            #   print("psi min is {}".format(np.min(psi)))
             if psi[index] > 0:
                 return np.zeros(x0.shape)
             y = np.zeros(x0.shape)
@@ -161,7 +169,6 @@ class FletcherFreemanMethod(BasicOptimizer):
     """
     def __init__(self, step_optimizer=None, max_error=1e-18, max_iter=1000):
         super().__init__(step_optimizer, max_error, max_iter)
-        self.__class__.__name__ = "FletcherFreeman"
         self.d_tag = 0
 
     def compute(self, f, g, gg, x0):
@@ -177,10 +184,12 @@ class FletcherFreemanMethod(BasicOptimizer):
             d = self._get_descent_direction(f, g, gg, x0)
             alpha = 1 if self.step_optimizer is None else self.step_optimizer.get_step_length(f, g, x0, d)
             x1 = x0 + alpha*d
+            '''
             self.f_val.append(f(x0))
             self.d_val.append(d)
             self.g_val.append(g(x0))
             self.alpha.append(alpha)
+            '''
             self._iter_increment()
             if self.iter_num % 100 == 0:
                 pass
@@ -193,6 +202,7 @@ class FletcherFreemanMethod(BasicOptimizer):
                       "f(x0)-f(x1) is {}".format(self.iter_num, f(x1), d, x1, alpha, f(x0)-f(x1)))
                 '''
             if self._maximum_loop() is True or self._convergence(f, x0, x1) is True:
+                '''
                 self.f_val.append(f(x1))
                 self.d_val.append(d)
                 self.g_val.append(g(x1))
@@ -202,6 +212,7 @@ class FletcherFreemanMethod(BasicOptimizer):
                       "d is \n{}\n"
                       "x is \n{}\n"
                       "alpha is\n{}".format(self.iter_num, f(x1), d, x1, alpha))
+                '''
                 break
             x0 = x1
         return x1
@@ -216,14 +227,12 @@ class FletcherFreemanMethod(BasicOptimizer):
         """
         #   all eigenvalue is positive
         if min_eigval > 1e-8:
-            #   print("11111")
             return -np.dot(np.linalg.inv(gg(x0)), g(x0))
 
         # has negative eigenvalue
         elif min_eigval < -1e-8:
             self.d_tag = 1
         if self.d_tag == 0:
-            #   print("22222")
             #   construct the a
             #
             a = np.zeros(x0.shape)
@@ -255,7 +264,6 @@ class FletcherFreemanMethod(BasicOptimizer):
                 d = -d
             self.d_tag = 1
         else:
-            #   print("33333")
             #   construct the positive D
             m = 0
             Dpp = np.zeros(D.shape)
@@ -294,10 +302,4 @@ class FletcherFreemanMethod(BasicOptimizer):
                 return -v[-1, :].reshape(-1, 1)*10
             else:
                 return v[-1, :].reshape(-1, 1)*10
-
-
-            print(np.dot(gg(x0), v))
-            print("iter_num:{}\n"
-                  "d is \n{}\n".format(self.iter_num,  d))
-            raise ValueError("")
         return d

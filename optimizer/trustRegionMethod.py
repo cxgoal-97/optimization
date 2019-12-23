@@ -66,8 +66,8 @@ class TrustRegion(BasicOptimizer):
         """
         if self.subq_method == "hebden":
             return self._hebden(fx, gx, ggx)
-        elif self.subq_method == "cauthy":
-            return self._cauthy(fx, gx, ggx)
+        elif self.subq_method == "cauchy":
+            return self._cauchy(fx, gx, ggx)
         elif self.subq_method == "subspace":
             return self._subspace(fx, gx, ggx)
         else:
@@ -84,17 +84,18 @@ class TrustRegion(BasicOptimizer):
         :return: d: the descent direction, np.ndarray of shape (N, 1)
         """
 
-        inv_ggx = np.linalg.inv(ggx)
+        inv_ggx = linalg.inv(ggx)
         d = -np.dot(inv_ggx, gx)
         norm_d = linalg.norm(d)
         if norm_d <= self.delta:
             return d
         # find ||d(v)|| = delta_k
-        v = 0
+        v = 0.0
         #
         i = 0
-        ori_norm_d = norm_d
-        while np.abs(norm_d - self.delta) > 1e-2 * self.delta and i < 50:
+
+        # next 1.15e-2 and 50 are magic nums,
+        while np.abs(norm_d - self.delta) > 1.15e-2 * self.delta and i < 50:
             i = i + 1
             inv_ggx = linalg.inv(ggx + v*np.eye(ggx.shape[0]))
             d = -np.dot(inv_ggx, gx)
@@ -103,11 +104,13 @@ class TrustRegion(BasicOptimizer):
             psi_v = (norm_d - self.delta)
             psi_d_v = np.dot(d.T, partial_d)/norm_d
             v = v - (psi_v + self.delta)/self.delta * psi_v / psi_d_v
+        if i>=50:
+            print("max i")
         return d
 
-    def _cauthy(self, fx, gx, ggx):
+    def _cauchy(self, fx, gx, ggx):
         """
-        :Note cauthy point method to solve sub question
+        :Note cauchy point method to solve sub question
 
         :param fx: f(x), np.ndarray of shape (N, 1)
         :param gx: g(x), np.ndarray of shape (N, 1)
@@ -193,7 +196,7 @@ class TrustRegion(BasicOptimizer):
             t = 4*m*v**2 + 2*n*v - q
             d = (2*v*m*gx + q*np.dot(inv_ggx, gx)) / t
         else:
-            return self._cauthy(fx, gx, ggx)
+            return self._cauchy(fx, gx, ggx)
 
         return d
 
@@ -209,14 +212,3 @@ class TrustRegion(BasicOptimizer):
         :return: value of quadratic function q, float
         """
         return fx + np.dot(gx.T, dx) + 0.5 * np.dot(dx.T, np.dot(ggx, dx))
-
-
-method = TrustRegion("hebden", delta=0.1, max_iter=3000, max_error=1e-10)
-f = BiggsEXP6(8)
-fx0 = np.array([1, 2, 1, 1, 1, 1]).reshape(6, 1)
-
-x = method.compute(f.f, f.g, f.gg, fx0)
-print(f.f(x))
-print(method.iter_num)
-print(x)
-

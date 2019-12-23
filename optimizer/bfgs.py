@@ -21,7 +21,7 @@ class BFGS(BasicOptimizer):
             x1 = x0 + alpha * d
             fx1, gx1 = f(x1), g(x1)
             #if self.iter_num % 10 == 0:
-            print("iter_num is{}, f(x) is{}, alpha is {}, g(x) is {}, x is {}".format(self.iter_num, fx1, alpha, vector_2norm(gx1.flatten()), vector_2norm(x1.flatten())))
+            #print("iter_num is{}, f(x) is{}, alpha is {}, g(x) is {}, x is {}".format(self.iter_num, fx1, alpha, vector_2norm(gx1.flatten()), vector_2norm(x1.flatten())))
             if self._maximum_loop() is True or self._convergence(gx1, x1) is True:
                 self.f_val.append(fx1)
                 self.d_val.append(d)
@@ -120,32 +120,8 @@ class LBFGSCompressed(LBFGSOriginal):
         q = np.hstack([Sk, gamma*Yk])
         d = gamma*gk + np.dot(q, p)
         
-        """
-
-        if len(self.s) == 0:
-            return -gx
-
-        sk = np.array(self.s, np.float64).T.reshape(-1, len(self.s))
-        yk = np.array(self.y, np.float64).T.reshape(-1, len(self.y))
-        dk = np.diag(np.array(self.sy, np.float64).reshape(-1))
-        rk = np.zeros((len(self.s), len(self.s)), np.float64)
-        for i in range(rk.shape[0]):
-            for j in range(rk.shape[1]):
-                if i <= j:
-                    rk[i][j] = np.dot(self.s[i].T, self.y[j])
-
-        eta = np.dot(self.y[-1].T, self.s[-1])/np.dot(self.y[-1].T, self.y[-1])[0][0]
-        
-        rk_inv = np.linalg.inv(rk)
-        sk_rkinvt = np.dot(sk, rk_inv.T)
-        yk_rkinv_skt = np.dot(yk, sk_rkinvt.T)
-        H = eta*np.eye(gx.shape[0], dtype=np.float64)+np.dot(sk_rkinvt, np.dot(dk+eta*np.dot(yk.T, yk), sk_rkinvt.T)) - eta*(yk_rkinv_skt - yk_rkinv_skt.T)
-
-        d = np.dot(H, -gx)
-        """
         if np.dot(gx.T, d) > 0:
             d = -d
-        #print("gamma is {}, gk is{}, dot is {}".format(gamma, gk, np.dot(q.T, p)))
         return d
 
     def _update_s_y(self, x1, x0, gx1, gx0):
